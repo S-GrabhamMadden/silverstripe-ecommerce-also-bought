@@ -66,6 +66,7 @@ class FindAlsoBought extends BuildTask
         if ($this->verbose) {
             DB::alteration_message('Sold Products Found ' . count($products), 'created');
         }
+
         DB::query('DELETE FROM Product_EcommerceAlsoBoughtProducts WHERE AutomaticallyAdded = 1 ');
         $minStrength = $this->Config()->get('minimum_strength');
         foreach ($products as $productID) {
@@ -81,6 +82,7 @@ class FindAlsoBought extends BuildTask
                 }
             }
         }
+
         if ($this->verbose) {
             DB::alteration_message('Finished', 'created');
         }
@@ -91,14 +93,15 @@ class FindAlsoBought extends BuildTask
         $lambda = Config::inst()->get(FindAlsoBought::class, 'decay_rate') * -1;
         $links = [];
         $orderIds = $this->getOrderIds($product);
-        if (!empty($orderIds)) {
+        if ($orderIds !== []) {
             foreach ($orderIds as $orderId) {
                 $orderItems = OrderItem::get()->filter(['OrderID' => $orderId]);
                 $myOrderItem = $orderItems->filter(['BuyableID' => $product->ID])->first();
                 if (! $myOrderItem || ! $myOrderItem->exists()) {
                     user_error('FindAlsoBought::findAlsoBought: No order item found for product ID ' . $product->ID, E_USER_WARNING);
                 }
-                $orderItems = $orderItems->exclude('BuyableID', $product->ID);
+
+                $orderItems = $orderItems->exclude(['BuyableID' => $product->ID]);
                 $orderTs = strtotime($myOrderItem->Created);
                 $countBefore = 0;
                 $countAfter = 0;
@@ -115,6 +118,7 @@ class FindAlsoBought extends BuildTask
                                 'Count' => 0,
                             ];
                         }
+
                         if ($orderItem->ID > $myOrderItem->ID) {
                             $countAfter++;
                         } else {
@@ -131,10 +135,12 @@ class FindAlsoBought extends BuildTask
                 }
             }
         }
+
         if ($this->verbose) {
             $vv = [];
             $vv[] = $product->Title . ' (' . $product->InternalItemID . ')';
         }
+
         foreach (array_keys($links) as $id) {
             $links[$id]['PercentageAddedAfterwards'] = round(
                 $links[$id]['PercentageAddedAfterwards'] / $links[$id]['Count'],
@@ -149,11 +155,13 @@ class FindAlsoBought extends BuildTask
                     '... % Added After: ' . $links[$id]['PercentageAddedAfterwards'];
             }
         }
+
         if ($this->verbose) {
             foreach ($vv as $s) {
                 DB::alteration_message($s);
             }
         }
+
         return $links;
     }
 
@@ -172,6 +180,7 @@ class FindAlsoBought extends BuildTask
         if (empty($this->cachedProducts[$id])) {
             $this->cachedProducts[$id] = Product::get()->byID($id);
         }
+
         return $this->cachedProducts[$id];
     }
 }
